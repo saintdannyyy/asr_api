@@ -6,9 +6,11 @@ from typing import Optional
 import torch
 from transformers import pipeline
 from pathlib import Path
-from pydub import AudioSegment
+# from pydub import AudioSegment
 import tempfile
 import noisereduce as nr
+import ffmpeg
+import tempfile
 
 app = FastAPI(title="ASR API", description="API for Automatic Speech Recognition")
 
@@ -32,18 +34,11 @@ asr_pipe = pipeline(
     device=device
 )
 
-def convert_to_wav(audio_file_path: str) -> str:
-    """Convert any audio file to WAV format with 16kHz sample rate."""
-    # Create a temporary file for the WAV output
-    temp_wav = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
-    temp_wav.close()
-    
-    # Load and convert the audio
-    audio = AudioSegment.from_file(audio_file_path)
-    audio = audio.set_frame_rate(16000).set_channels(1)
-    audio.export(temp_wav.name, format="wav")
-    
-    return temp_wav.name
+def convert_to_wav(input_path: str) -> str:
+    output_path = tempfile.NamedTemporaryFile(suffix=".wav", delete=False).name
+    ffmpeg.input(input_path).output(output_path, ar=16000, ac=1).run(overwrite_output=True)
+    return output_path
+
 
 def transcribe_audio(audio_path: str) -> str:
     """Transcribe audio using the Hugging Face pipeline."""
